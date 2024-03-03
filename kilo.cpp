@@ -63,17 +63,22 @@ char editorReadKey() {
   int nread;
   char c;
   while ((nread = read(STDIN_FILENO, &c, 1)) != 1) {
-    if (nread == -1 && errno != EAGAIN) die("read");
+    if (nread == -1 && errno != EAGAIN)
+      die("read");
   }
   return c;
 }
+
+/*** output ***/
+void editorRefreshScreen() { write(STDOUT_FILENO, "\x1b[2J", 4); }
+
 /*** input ***/
 void editorProcessKeypress() {
   char c = editorReadKey();
   switch (c) {
-    case CTRL_KEY('q'):
-      exit(0);
-      break;
+  case CTRL_KEY('q'):
+    exit(0);
+    break;
   }
 }
 
@@ -83,7 +88,8 @@ int main() {
   enableRawMode();
 
   while (1) {
-   editorProcessKeypress(); 
+    editorRefreshScreen();
+    editorProcessKeypress();
   }
 
   return 0;
