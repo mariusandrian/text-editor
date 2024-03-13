@@ -155,12 +155,18 @@ void abFree(struct abuf *ab) { free(ab->b); }
 void editorDrawRows(struct abuf *ab) {
   int y;
   for (y = 0; y < E.screenrows; y++) {
-    if (y == E.screenrows / 30) {
+    if (y == E.screenrows / 3) {
       char welcome[80];
       int welcomeLen = snprintf(welcome, sizeof(welcome),
                                 "Kilo editor -- version %s", KILO_VERSION);
       if (welcomeLen > E.screencols)
         welcomeLen = E.screencols;
+      int padding = (E.screencols - welcomeLen) / 2;
+      if (padding) {
+        abAppend(ab, "~", 1);
+        padding--;
+      }
+      while (padding--) abAppend(ab, " ", 1);
       abAppend(ab, welcome, welcomeLen);
     } else {
       abAppend(ab, "~", 1);
