@@ -1,5 +1,6 @@
 /*** includes ***/
 
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctype.h>
@@ -134,6 +135,7 @@ struct abuf {
 // TODO: replace with actual class constructor.
 #define ABUF_INIT                                                              \
   { nullptr, 0 }
+#define KILO_VERSION "0.0.1"
 
 // TODO: change to just use std::vector.
 void abAppend(struct abuf *ab, const char *s, int len) {
@@ -153,8 +155,19 @@ void abFree(struct abuf *ab) { free(ab->b); }
 void editorDrawRows(struct abuf *ab) {
   int y;
   for (y = 0; y < E.screenrows; y++) {
-    abAppend(ab, "~", 1);
+    if (y == E.screenrows / 30) {
+      char welcome[80];
+      int welcomeLen = snprintf(welcome, sizeof(welcome),
+                                "Kilo editor -- version %s", KILO_VERSION);
+      if (welcomeLen > E.screencols)
+        welcomeLen = E.screencols;
+      abAppend(ab, welcome, welcomeLen);
+    } else {
+      abAppend(ab, "~", 1);
+    }
 
+    // Clear line after the cursor.
+    abAppend(ab, "\x1b[K", 3);
     if (y < E.screenrows - 1) {
       abAppend(ab, "\r\n", 2);
     }
@@ -167,7 +180,8 @@ void editorRefreshScreen() {
   // Turn off cursor. (Reset mode)
   abAppend(&ab, "\x1b[?25l", 6);
   // Clear screen.
-  abAppend(&ab, "\x1b[2J", 4);
+  // abAppend(&ab, "\x1b[2J", 4);
+
   // Position cursor at top-left corner.
   abAppend(&ab, "\x1b[H", 3);
 
