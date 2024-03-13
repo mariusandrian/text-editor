@@ -137,7 +137,7 @@ struct abuf {
 
 // TODO: change to just use std::vector.
 void abAppend(struct abuf *ab, const char *s, int len) {
-  char *newChar = (char*)realloc(ab->b, ab->len + len);
+  char *newChar = (char *)realloc(ab->b, ab->len + len);
 
   if (newChar == nullptr) {
     return;
@@ -164,6 +164,8 @@ void editorDrawRows(struct abuf *ab) {
 void editorRefreshScreen() {
   struct abuf ab = ABUF_INIT;
 
+  // Turn off cursor. (Reset mode)
+  abAppend(&ab, "\x1b[?25l", 6);
   // Clear screen.
   abAppend(&ab, "\x1b[2J", 4);
   // Position cursor at top-left corner.
@@ -171,7 +173,10 @@ void editorRefreshScreen() {
 
   editorDrawRows(&ab);
 
+  // Position cursor at top-left corner after drawing.
   abAppend(&ab, "\x1b[H", 3);
+  // Turn on cursor. (Set mode)
+  abAppend(&ab, "\x1b[?25h", 6);
 
   write(STDOUT_FILENO, ab.b, ab.len);
 
