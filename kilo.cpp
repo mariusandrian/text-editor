@@ -20,6 +20,7 @@ using namespace std;
 /*** data ***/
 
 struct editorConfig {
+  int cx, cy;
   int screenrows;
   int screencols;
   struct termios orig_termios;
@@ -166,7 +167,8 @@ void editorDrawRows(struct abuf *ab) {
         abAppend(ab, "~", 1);
         padding--;
       }
-      while (padding--) abAppend(ab, " ", 1);
+      while (padding--)
+        abAppend(ab, " ", 1);
       abAppend(ab, welcome, welcomeLen);
     } else {
       abAppend(ab, "~", 1);
@@ -216,6 +218,8 @@ void editorProcessKeypress() {
 /*** init ***/
 
 void initEditor() {
+  E.cx = 0;
+  E.cy = 0;
   if (getWindowSize(&E.screenrows, &E.screencols) == -1)
     die("getWindowSize");
 }
