@@ -17,10 +17,13 @@ using namespace std;
 /*** defines ***/
 #define CTRL_KEY(k) ((k) & 0x1f)
 
+enum class ARROW : int { UP = 1000, DOWN = 1001, LEFT = 1002, RIGHT = 1003 };
+
 /*** data ***/
 
 struct editorConfig {
-  int cx, cy;
+  int cx;
+  int cy;
   int screenrows;
   int screencols;
   struct termios orig_termios;
@@ -73,14 +76,39 @@ void enableRawMode() {
   }
 }
 
-char editorReadKey() {
+int editorReadKey() {
   int nread;
   char c;
   while ((nread = read(STDIN_FILENO, &c, 1)) != 1) {
     if (nread == -1 && errno != EAGAIN)
       die("read");
   }
-  return c;
+
+  if (c == '\x1b') {
+    char seq[3];
+
+    // Handle char wih only escape seq or only 1 char afterwards.
+    if (read(STDIN_FILENO, &seq[0], 1) != 1)
+      return '\x1b';
+    if (read(STDIN_FILENO, &seq[1], 1) != 1)
+      return '\x1b';
+
+    if (seq[0] == '[') {
+      switch (seq[1]) {
+      case 'A':
+        return static_cast<int>(ARROW::UP);
+      case 'B':
+        return static_cast<int>(ARROW::DOWN);
+      case 'C':
+        return static_cast<int>(ARROW::RIGHT);
+      case 'D':
+        return static_cast<int>(ARROW::LEFT);
+      }
+    }
+    return '\x1b';
+  } else {
+    return c;
+  }
 }
 
 int getCursorPosition(int *rows, int *cols) {
@@ -195,8 +223,13 @@ void editorRefreshScreen() {
 
   editorDrawRows(&ab);
 
+  char buf[32];
+  snprintf(buf, sizeof(buf), "\x1b[%d;%dH", E.cy + 1, E.cx + 1);
+  abAppend(&ab, buf, strlen(buf));
+
   // Position cursor at top-left corner after drawing.
-  abAppend(&ab, "\x1b[H", 3);
+  // abAppend(&ab, "\x1b[H", 3);
+
   // Turn on cursor. (Set mode)
   abAppend(&ab, "\x1b[?25h", 6);
 
@@ -206,11 +239,35 @@ void editorRefreshScreen() {
 }
 
 /*** input ***/
+void editorMoveCursor(int key) {
+  switch (key) {
+    case static_cast<int>(ARROW::LEFT):
+    E.cx--;
+    break;
+  case static_cast<int>(ARROW::RIGHT):
+    E.cx++;
+    break;
+  case static_cast<int>(ARROW::UP):
+    E.cy--;
+    break;
+  case static_cast<int>(ARROW::DOWN):
+    E.cy++;
+    break;
+  }
+}
+
 void editorProcessKeypress() {
-  char c = editorReadKey();
+  int c = editorReadKey();
   switch (c) {
   case CTRL_KEY('q'):
     exit(0);
+    break;
+
+  case static_cast<int>(ARROW::UP):
+  case static_cast<int>(ARROW::DOWN):
+  case static_cast<int>(ARROW::LEFT):
+  case static_cast<int>(ARROW::RIGHT):
+    editorMoveCursor(c);
     break;
   }
 }
