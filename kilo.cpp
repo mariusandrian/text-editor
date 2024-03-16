@@ -21,11 +21,18 @@ enum class ARROW : int { UP = 1000, DOWN = 1001, LEFT = 1002, RIGHT = 1003 };
 
 /*** data ***/
 
+typedef struct erow {
+  int size;
+  char *chars;
+} erow;
+
 struct editorConfig {
   int cx;
   int cy;
   int screenrows;
   int screencols;
+  int numrows;
+  erow row;
   struct termios orig_termios;
 };
 
@@ -153,6 +160,20 @@ int getWindowSize(int *rows, int *cols) {
   }
 }
 
+/*** file io ***/
+
+void editorOpen() {
+  // TODO: remove once can read files.
+  const char *line = "Hello World!";
+  ssize_t linelen = 13;
+
+  E.row.size = linelen;
+  E.row.chars = (char *)malloc(linelen + 1);
+  memcpy(E.row.chars, line, linelen);
+  E.row.chars[linelen] = '\0';
+  E.numrows = 1;
+}
+
 /*** append buffer ***/
 
 struct abuf {
@@ -184,22 +205,29 @@ void abFree(struct abuf *ab) { free(ab->b); }
 void editorDrawRows(struct abuf *ab) {
   int y;
   for (y = 0; y < E.screenrows; y++) {
-    if (y == E.screenrows / 3) {
-      char welcome[80];
-      int welcomeLen = snprintf(welcome, sizeof(welcome),
-                                "Kilo editor -- version %s", KILO_VERSION);
-      if (welcomeLen > E.screencols)
-        welcomeLen = E.screencols;
-      int padding = (E.screencols - welcomeLen) / 2;
-      if (padding) {
+    if (y >= E.numrows) {
+      if (y == E.screenrows / 3) {
+        char welcome[80];
+        int welcomeLen = snprintf(welcome, sizeof(welcome),
+                                  "Kilo editor -- version %s", KILO_VERSION);
+        if (welcomeLen > E.screencols)
+          welcomeLen = E.screencols;
+        int padding = (E.screencols - welcomeLen) / 2;
+        if (padding) {
+          abAppend(ab, "~", 1);
+          padding--;
+        }
+        while (padding--)
+          abAppend(ab, " ", 1);
+        abAppend(ab, welcome, welcomeLen);
+      } else {
         abAppend(ab, "~", 1);
-        padding--;
       }
-      while (padding--)
-        abAppend(ab, " ", 1);
-      abAppend(ab, welcome, welcomeLen);
     } else {
-      abAppend(ab, "~", 1);
+      int len = E.row.size;
+      if (len > E.screencols)
+        len = E.screencols;
+      abAppend(ab, E.row.chars, len);
     }
 
     // Clear line after the cursor.
@@ -285,6 +313,7 @@ void editorProcessKeypress() {
 void initEditor() {
   E.cx = 0;
   E.cy = 0;
+  E.numrows = 0;
   if (getWindowSize(&E.screenrows, &E.screencols) == -1)
     die("getWindowSize");
 }
@@ -292,6 +321,7 @@ void initEditor() {
 int main() {
   enableRawMode();
   initEditor();
+  editorOpen();
 
   while (1) {
     editorRefreshScreen();
