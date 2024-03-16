@@ -241,17 +241,25 @@ void editorRefreshScreen() {
 /*** input ***/
 void editorMoveCursor(int key) {
   switch (key) {
-    case static_cast<int>(ARROW::LEFT):
-    E.cx--;
+  case static_cast<int>(ARROW::LEFT):
+    if (E.cx != 0) {
+      E.cx--;
+    }
     break;
   case static_cast<int>(ARROW::RIGHT):
-    E.cx++;
+    if (E.cx < E.screenrows) {
+      E.cx++;
+    }
     break;
   case static_cast<int>(ARROW::UP):
-    E.cy--;
+    if (E.cy != 0) {
+      E.cy--;
+    }
     break;
   case static_cast<int>(ARROW::DOWN):
-    E.cy++;
+    if (E.cy < E.screencols) {
+      E.cy++;
+    }
     break;
   }
 }
